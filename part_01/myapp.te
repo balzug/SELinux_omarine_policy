@@ -1,26 +1,94 @@
+
+# The macro policy_module declares the loadable module myapp version 1.0 
+# together with the require statement that is predefined such as types and 
+# classes.
 policy_module(myapp,1.0)
 
+# myapp_roles group attribute identifier represents a role group. 
+# Then the system_r role is added to the group.
 attribute_role myapp_roles;
 roleattribute system_r myapp_roles;
 
+# Declare four types: 
+#  myapp_t is the type of domain, 
+#  myapp_exec_t is the type of executable file, 
+#  myapp_log_t is for log files and 
+#  myapp_tmp_t for temp files. 
 type myapp_t;
 type myapp_exec_t;
 type myapp_log_t;
 type myapp_tmp_t;
 
+# Role group myapp_roles associated with the myapp_t domain of the program. 
+# This means that the myapp_t domain can accompany the roles in the group.
 role myapp_roles types myapp_t;
 
+# The domain_type macro specifies the type myapp_t to be a domain. 
+# In essence, it takes myapp_t into the domain group. 
+# This macro can be replaced with the following rules:
+#  require { attribute domain; }
+#  typeattribute myapp_t domain;
 domain_type(myapp_t)
 
+# This macro is mainly used to specify an entry point to the myapp_t domain 
+# for the executable file of type myapp_exec_t. 
+# This macro can be replaced with the following rules:
+#  allow myapp_t myapp_exec_t:file { entrypoint mmap_exec_file_perms ioctl lock };
+#  require {
+#      attribute entry_type;
+#      attribute exec_type;
+#      attribute file_type;
+#      attribute non_security_file_type;
+#      attribute non_auth_file_type;
+#  }
+#  typeattribute myapp_exec_t entry_type, exec_type, file_type, non_security_file_type, non_auth_file_type;
 domain_entry_file(myapp_t, myapp_exec_t)
 
+# The logging_log_file macro makes myapp_log_t become the type of log file 
+# with the necessary groups and rules. 
+# This macro can be replaced with the following rules:
+#  require {
+#      attribute logfile;
+#      type tmpfs_t;
+#      type tmp_t;
+#  }
+#  typeattribute myapp_log_t file_type, non_security_file_type, non_auth_file_type, logfile;
+#  allow myapp_log_t tmp_t:filesystem associate;
+#  allow myapp_log_t tmpfs_t:filesystem associate;
 logging_log_file(myapp_log_t)
 
+# Macro files_tmp_file takes the type of myapp_tmp_t to the necessary groups
+# so that it becomes the type of temp file. 
+# This macro can be replaced with the following rules:
+#  require {
+#      attribute tmpfile;
+#      attribute polymember;
+#  }
+#  typeattribute myapp_tmp_t file_type, non_security_file_type, non_auth_file_type, tmpfile, polymember;
 files_tmp_file(myapp_tmp_t)
 
+# The two rules allow domain myapp_t to manipulate log files and temp files.
 allow myapp_t myapp_log_t:file append_file_perms;
 allow myapp_t myapp_tmp_t:file manage_file_perms;
 
+# The macro files_tmp_filetrans transitions the type for the files created 
+# by the myapp_t domain in the /tmp directory into the type myapp_tmp_t. 
+# This macro can be replaced with the following rules:
+#  type_transition myapp_t tmp_t:file myapp_tmp_t;
+#  allow myapp_t tmp_t:dir { read getattr lock search ioctl add_name remove_name write };
 files_tmp_filetrans(myapp_t, myapp_tmp_t, file)
 
+# Allow the domain myapp_t to read and write user TTYs and PTYs. 
+# This will allow the domain to interact with the user via the terminal 
+# inherited permissions from the user domain. 
+# This macro can be replaced with the following rules:
+#  require {
+#      type device_t;
+#      type devpts_t;
+#      type user_devpts_t;
+#      type user_tty_device_t;
+#  }
+# allow myapp_t device_t:dir { search_dir_perms list_dir_perms read_lnk_file_perms };
+# allow myapp_t devpts_t:dir list_dir_perms;
+# allow myapp_t { user_devpts_t user_tty_device_t }:chr_file rw_inherited_term_perms;
 userdom_use_inherited_user_terminals(myapp_t)
