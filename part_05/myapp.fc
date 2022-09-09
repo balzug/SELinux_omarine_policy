@@ -1,0 +1,1 @@
+/usr/bin/myapp	--	gen_context(system_u:object_r:myapp_exec_t,s0)
