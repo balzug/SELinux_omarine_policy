@@ -1,0 +1,89 @@
+## <summary>Myapp example policy</summary>
+## <desc>
+##	<p>
+##		More descriptive text about myapp.  The desc
+##		tag can also use p, ul, and ol
+##		html tags for formatting.
+##	</p>
+##	<p>
+##		This policy supports the following myapp features:
+##		<ul>
+##		<li>Feature A</li>
+##		<li>Feature B</li>
+##		<li>Feature C</li>
+##		</ul>
+##	</p>
+## </desc>
+
+########################################
+## <summary>
+##	Execute a domain transition to run myapp.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`myapp_domtrans',`
+	gen_require(`
+		type myapp_t, myapp_exec_t;
+	')
+    
+	# Transition the domain indicated by the first argument to the domain 
+	# myapp_t when the binary of type myapp_exec_t is executed.
+	domtrans_pattern($1,myapp_exec_t,myapp_t)
+')
+
+########################################
+## <summary>
+##Execute myapp in the myapp domain, and
+##allow the specified role the myapp domain.
+## </summary>
+## <param name="domain">
+##<summary>
+##Domain allowed to transition.
+##</summary>
+## </param>
+## <param name="role">
+##<summary>
+##Role allowed access.
+##</summary>
+## </param>
+#
+interface(`myapp_run',`
+        gen_require(`
+            attribute_role myapp_roles;
+        ')
+
+        # Call the interface myapp_domtrans to transition domain with the first 
+        # argument in the call to the interface myapp_run.
+        myapp_domtrans($1)
+        # Add the role indicated in the second argument to the myapp_roles group. 
+        # This role serves to compute security contexts during transitioning to 
+        # ensure that it is available in the new security context.
+        roleattribute $2 myapp_roles;
+
+')
+
+########################################
+## <summary>
+##	Read myapp log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to read the log files.
+##	</summary>
+## </param>
+#
+interface(`myapp_read_log',`
+	gen_require(`
+		type myapp_log_t;
+	')
+
+	# Allow the domain indicated in the first argument to search for /var, 
+	# /var/log directories, and read the log files of type myapp_log_t such 
+	# as /var/log/myapplog.
+	logging_search_logs($1)
+	allow $1 myapp_log_t:file read_file_perms;
+')
