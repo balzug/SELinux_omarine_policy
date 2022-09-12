@@ -1,0 +1,3 @@
+# notes
+misc_patterns.spt and misc_macros.pts were copied from:
+/usr/share/selinux/devel/include/support/
