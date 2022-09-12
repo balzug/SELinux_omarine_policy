@@ -1,0 +1,35 @@
+The program is simple but smart and is enough to describe a new domain with domain transition, access permissions and private data.
+myapp is just a normal program, does not need to be a SELinux-aware program.
+The program receives user input for a name. The name only accepts letters and spaces. If the data is received successfully the program opens /tmp/myapp.123456 file as its temp file and writes data to the file. The command line parameter with the -r option will read and output data from the file.
+
+Compile the program:
+
+gcc -o myapp myapp.c
+
+
+The result is the myapp binary. Now we copy myapp to /usr/bin. The binary /usr/bin/myapp will be of type myapp_exec_t. See myapp.fc.
+
+We run the program as the staff_u/unconfined_u user. Only staff_u/unconfined_u can run the program according to the permissions of the module myapp_perm that has been inserted into the policy.
+
+The program pauses waiting for input from the user. Now is the opportunity for us to see the process in the domain myapp_t. Since the process has transitioned to the myapp_t domain, only root can see it with the ps command in another command window:
+
+ps auxZ | grep myapp_t
+
+Now we return to the program, enter a name such as "Bang Ngoc":
+
+The string "Bang Ngoc" has been written to /tmp/myapp.123456 file. We rerun myapp with the -r option to read and output data from the file.
+
+Clearly myapp_t domain has access to program data. But no user can directly access the data except root. That means the user staff_u/unconfined_u with the staff_t/unconfined_t domain cannot read directly /tmp/myapp.123456 which has the type myapp_tmp_t.
+
+But why can root read /tmp/myapp.123456 file?
+That's because the following two rules already exist in the policy:
+
+typeattribute myapp_tmp_t file_type, non_security_file_type, non_auth_file_type, tmpfile, polymember;
+allow sysadm_t non_auth_file_type:file { ioctl read write create getattr setattr lock relabelfrom relabelto append map unlink link rename open }; 
+
+
+Thus we see that the security policy is strong and explicit. All problems are open and clear.
+In addition, no user (even root) except staff_u can run the myapp program.
+
+That's because there are no policy rules that allow them to do so.
+

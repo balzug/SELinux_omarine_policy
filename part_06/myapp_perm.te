@@ -1,0 +1,27 @@
+policy_module(myapp_perm,1.0)
+
+require {
+    type unconfined_t, staff_t;
+    role unconfined_r, staff_r;
+}
+
+myapp_run(staff_t, staff_r)
+myapp_read_log(staff_t)
+
+myapp_run(unconfined_t, unconfined_r)
+myapp_read_log(unconfined_t)
+
+# Explanations:
+# Call the interface myapp_run of module myapp to allow domain staff_t to 
+# transition to domain myapp_t with staff_r role when the myapp binary is 
+# executed. Allow domain staff_t to read the log files of the myapp program.
+# Our goal is to allow the default user ie staff_u running myapp program from 
+# its user domain, staff_t. Then the process is transitioned to the domain 
+# myapp_t.
+#
+# Call the interface myapp_run of module myapp to allow domain unconfined_t to 
+# transition to domain myapp_t with unconfined_r role when the myapp binary is 
+# executed. Allow domain unconfined_t to read the log files of the myapp program.
+# Our goal is to allow the default user ie unconfined_u running myapp program from 
+# its user domain, unconfined_t. Then the process is transitioned to the domain 
+# myapp_t.

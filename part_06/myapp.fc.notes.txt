@@ -1,0 +1,34 @@
+myapp.fc defines the file security contexts, it has the following content:
+
+  1/usr/bin/myapp	--	gen_context(system_u:object_r:myapp_exec_t,s0)
+
+The /usr/bin/myapp binary will have context with the type myapp_exec_t when 
+running commands like restorecon, fixfiles.
+
+There is a service that restores file context automatically. It is restorecond 
+service.
+  systemctl status restorecond
+
+However, this service only applies to files and directories listed in the 
+configuration file /etc/selinux/restorecond.conf. By default the binaries in 
+/usr/bin are not applied. 
+To clarify this, we copy myapp into /usr/bin and see its security context, as 
+the root user:
+  cp myapp /usr/bin/
+  ls -Z /usr/bin/myapp
+
+The type of /usr/bin/myapp is bin_t rather than myapp_exec_t as we wish.
+Now we add /usr/bin/ * to the /etc/selinux/restorecond.conf configuration file, 
+the result is as expected.
+
+Here the security context computing process preserves the user field of the file 
+security context, which is root. If you want, you can change it to system_u by 
+running the command chcon, as the root user:
+  chcon -u system_u /usr/bin/myapp
+
+You can also set the file context permanently by running the semanage command 
+as follows:
+  semanage fcontext -a -t myapp_exect -s system_u /usr/bin/myapp
+  restorecon -F /usr/bin/myapp
+
+
