@@ -1,0 +1,96 @@
+## <summary>Myapp_se example policy</summary>
+## <desc>
+##	<p>
+##		More descriptive text about myapp_se.  The desc
+##		tag can also use p, ul, and ol
+##		html tags for formatting.
+##		Myapp_se calls setexeccon() and performs manual domain 
+##              transition!
+##	</p>
+##	<p>
+##		This policy supports the following myapp features:
+##		<ul>
+##		<li>Feature A</li>
+##		<li>Feature B</li>
+##		<li>Feature C</li>
+##		</ul>
+##	</p>
+## </desc>
+
+########################################
+## <summary>
+##	Execute a domain transition to run myapp_se.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to transition.
+##	</summary>
+## </param>
+#
+interface(`myapp_se_domtrans',`
+	gen_require(`
+		type myapp_se_t, myapp_se_exec_t;
+	')
+    
+	# Transition the domain indicated by the first argument to the domain 
+	# myapp_se_t when the setexeccon() and execv() on binary with 
+	# myapp_se_exec_t label are called.
+	spec_domtrans_pattern($1,myapp_se_exec_t,myapp_se_t)
+')
+
+########################################
+## <summary>
+##Execute myapp in the myapp_se domain, and
+##allow the specified role the myapp_se domain.
+## </summary>
+## <param name="domain">
+##<summary>
+##Domain allowed to transition.
+##</summary>
+## </param>
+## <param name="role">
+##<summary>
+##Role allowed access.
+##</summary>
+## </param>
+#
+interface(`myapp_se_run',`
+        gen_require(`
+            attribute_role myapp_se_roles;
+        ')
+
+        # Call the interface myapp_se_domtrans to transition domain with the first 
+        # argument in the call to the interface myapp_se_run.
+        myapp_se_domtrans($1)
+
+        # Add the role indicated in the second argument to the myapp_se_roles group. 
+        # This role serves to compute security contexts during transitioning to 
+        # ensure that it is available in the new security context.
+        roleattribute $2 myapp_se_roles;
+
+	# Allow domain to execute binary with myapp_se_exec_t label.
+	can_exec($1, myapp_se_exec_t)
+
+')
+
+########################################
+## <summary>
+##	Read myapp log files.
+## </summary>
+## <param name="domain">
+##	<summary>
+##	Domain allowed to read the log files.
+##	</summary>
+## </param>
+#
+interface(`myapp_se_read_log',`
+	gen_require(`
+		type myapp_se_log_t;
+	')
+
+	# Allow the domain indicated in the first argument to search for /var, 
+	# /var/log directories, and read the log files of type myapp_se_log_t such 
+	# as /var/log/myapplog.
+	logging_search_logs($1)
+	allow $1 myapp_se_log_t:file read_file_perms;
+')
