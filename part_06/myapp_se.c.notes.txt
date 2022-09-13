@@ -1,0 +1,43 @@
+
+# Transitioning domain directly by designing SELinux-aware program
+
+In the myapp module we have applied automatic domain transition for a normal program that is myapp. That is done by the type_transition statement inside the domtrans_pattern macro of the interface myapp_domtrans. Detail:
+
+type_transition staff_t myapp_exec_t: process myapp_t;
+
+To look deeper we perform manual domain transition in a SELinux-aware program, myapp_se program.
+Policy modules myapp_se and myapp_se_perm are very similar to myapp and myapp_perm modules where myapp prefixes are replaced with myapp_se. Only two interfaces actually change:
+1) Interface myapp_se_domtrans
+
+interface(`myapp_se_domtrans',`
+	gen_require(`
+		type myapp_se_t, myapp_se_exec_t;
+	')
+    
+	spec_domtrans_pattern($1,myapp_se_exec_t,myapp_se_t)
+')
+
+The macro domtrans_pattern is replaced with the spec_domtrans_pattern macro which removes the type_transition statement and adds the setexec permission to the source domain. This is to let myapp_se program call the libselinux API setexeccon() before transitioning domain.
+2) Interface myapp_se_run
+
+interface(`myapp_se_run',`
+        gen_require(`
+            attribute_role myapp_se_roles;
+            type myapp_se_exec_t;
+        ')
+
+        myapp_se_domtrans($1)
+        roleattribute $2 myapp_se_roles;
+        can_exec($1, myapp_se_exec_t)
+
+')
+
+This interface adds the can_exec macro. It is necessary to allow the source domain to execute the /usr/bin/myapp_se binary. In this domain the program proceeds to transition to the domain myapp_se_t.
+
+# Program myapp_se
+
+myapp_se program is more complicated than myapp program a bit.
+
+The function get_new_context() is used to get a new context string. The program performs current context check at the beginning of the program. Initially when the staff_u/unconfined_u user runs the program, the process is still in the staff_t/unconfined_t domain, so the program proceeds with the domain transition. It takes the new context and sets that context for domain transition. Finally the execvp() function executes the /usr/bin/myapp_se binary again and the process transitions to the domain myapp_se_t. Now the new domain is already achieved so the program does not transition the domain and then carries out the rest of the program in the new security context.
+
+
